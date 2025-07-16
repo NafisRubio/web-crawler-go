@@ -29,7 +29,7 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 
 ## Dependencies
 
-- github.com/go-redis/redis/v8 - Redis client
+- github.com/redis/go-redis/v9 - Redis client
 - github.com/playwright-community/playwright-go - Web automation
 - github.com/deckarep/golang-set/v2 - Set implementation
 

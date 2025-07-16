@@ -6,6 +6,7 @@ import (
 
 	// Adapters
 	http_adapter "web-crawler-go/internal/adapters/primary/http"
+	"web-crawler-go/internal/adapters/secondary/cache"
 	"web-crawler-go/internal/adapters/secondary/fetcher"
 	"web-crawler-go/internal/adapters/secondary/providers/shopify"
 	"web-crawler-go/internal/adapters/secondary/providers/shopline"
@@ -17,7 +18,13 @@ import (
 
 func main() {
 	// 1. Initialize Secondary/Driven Adapters
-	htmlFetcher := fetcher.NewHTTPFetcher()
+
+	// Initialize Redis cache
+	redisCache := cache.NewRedisCache("localhost:6379", "", 0)
+
+	// Initialize HTTP fetcher with Redis cache
+	htmlFetcher := fetcher.NewHTTPFetcher(redisCache)
+
 	shopifyProvider := shopify.NewParser(htmlFetcher)
 	shoplineProvider := shopline.NewParser(htmlFetcher)
 	// When you add Wix: wixProvider := wix.NewParser()
