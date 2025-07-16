@@ -18,8 +18,8 @@ import (
 func main() {
 	// 1. Initialize Secondary/Driven Adapters
 	htmlFetcher := fetcher.NewHTTPFetcher()
-	shopifyProvider := shopify.NewParser()
-	shoplineProvider := shopline.NewParser()
+	shopifyProvider := shopify.NewParser(htmlFetcher)
+	shoplineProvider := shopline.NewParser(htmlFetcher)
 	// When you add Wix: wixProvider := wix.NewParser()
 
 	// 2. Create the Provider Registry

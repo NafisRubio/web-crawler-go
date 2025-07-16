@@ -4,13 +4,23 @@ import (
 	"context"
 	"io"
 	"web-crawler-go/internal/core/domain"
+	"web-crawler-go/internal/core/ports"
 	// You would add a dependency like "github.com/PuerkitoBio/goquery"
 )
 
-type Parser struct{}
+type Parser struct {
+	fetcher ports.HTMLFetcher
+}
 
-func NewParser() *Parser {
-	return &Parser{}
+func (p *Parser) ProcessProducts(ctx context.Context, url string) (*domain.Product, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func NewParser(fetcher ports.HTMLFetcher) *Parser {
+	return &Parser{
+		fetcher: fetcher,
+	}
 }
 
 // Parse implements the ProductProvider interface for Shopify.
