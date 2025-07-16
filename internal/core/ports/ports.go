@@ -1,0 +1,28 @@
+package ports
+
+import (
+	"context"
+	"io"
+	"web-crawler-go/internal/core/domain"
+)
+
+// --- Primary/Driving Ports ---
+
+// ProductService is the interface for the application's business logic.
+// It's called by primary adapters (e.g., HTTP handlers).
+type ProductService interface {
+	GetProductFromURL(ctx context.Context, url string) (*domain.Product, error)
+}
+
+// --- Secondary/Driven Ports ---
+
+// HTMLFetcher is an interface for fetching HTML content from a URL.
+type HTMLFetcher interface {
+	Fetch(ctx context.Context, url string) (io.ReadCloser, error)
+}
+
+// ProductProvider is an interface for parsing product data from HTML.
+// Each provider (Shopify, Wix) will implement this.
+type ProductProvider interface {
+	Parse(ctx context.Context, html io.Reader) (*domain.Product, error)
+}
