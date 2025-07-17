@@ -2,9 +2,11 @@ package shopline
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"web-crawler-go/internal/core/domain"
 	"web-crawler-go/internal/core/ports"
@@ -85,8 +87,49 @@ func (p *Parser) fetchAndParseProduct(ctx context.Context, productURL string) (*
 	}
 	defer body.Close()
 
+	merchantID, productID, err := p.parseMerchantIDAndProductID(body)
+	if err != nil {
+		fmt.Printf("Error processing %s: %v\n", productURL, err)
+	}
+	fmt.Printf("merchantID: %s\n", *merchantID)
+	fmt.Printf("productID: %s\n", *productID)
 	// Use your existing Parse method to extract product data
 	return p.Parse(ctx, body)
+}
+
+func (p *Parser) parseMerchantIDAndProductID(htmlBody io.ReadCloser) (*string, *string, error) {
+	bodyBytes, err := io.ReadAll(htmlBody)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read html body: %w", err)
+	}
+
+	// product', JSON.parse
+	//re := regexp.MustCompile(`\\"merchantId\\":\\"([a-zA-Z0-9]+)\\"`)
+	re := regexp.MustCompile(`app\.value\('product', JSON\.parse\('({\\"_id\\".+\})`)
+
+	// The FindSubmatch methods also have a version that accepts a byte slice.
+	jsonMatches := re.FindSubmatch(bodyBytes)
+	if len(jsonMatches) < 1 {
+		return nil, nil, fmt.Errorf("merchantId not found in html body")
+	}
+
+	rawJson := jsonMatches[1]
+	// Use strings.ReplaceAll on the string representation
+	validJsonString := strings.ReplaceAll(string(rawJson), `\"`, `"`)
+
+	var config struct {
+		ProductID  string `json:"_id"`
+		MerchantID string `json:"owner_id"`
+	}
+
+	// Unmarshal expects a byte slice, so we convert the cleaned string back.
+	err = json.Unmarshal([]byte(validJsonString), &config)
+	if err != nil {
+		fmt.Println("Error parsing JSON:", err)
+		return nil, nil, err
+	}
+
+	return &config.MerchantID, &config.ProductID, nil
 }
 
 func NewParser(fetcher ports.HTMLFetcher) *Parser {
