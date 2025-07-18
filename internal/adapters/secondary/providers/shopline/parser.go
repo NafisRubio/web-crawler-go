@@ -27,9 +27,14 @@ type Parser struct {
 	fetcher ports.HTMLFetcher
 }
 
-type ProductShopLine struct {
-	Name string
-	Tags []string
+type Product struct {
+	Name            string
+	Price           int
+	PriceDiscounted int
+	Description     string
+	ImagesURL       []string
+	Tags            []string
+	Status          string
 }
 
 func (p *Parser) ProcessProducts(ctx context.Context, url string) (*domain.Product, error) {
@@ -166,7 +171,7 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 	}, nil
 }
 
-func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchantID *string, productID *string) (*ProductShopLine, error) {
+func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchantID *string, productID *string) (*Product, error) {
 	//       const productModelUrl = `https://${this.domainName}/api/merchants/${productApplicationLdJson.owner_id}/products/${productApplicationLdJson._id}`
 	productDataURL := fmt.Sprintf("https://%s/api/merchants/%s/products/%s", hostname, *merchantID, *productID)
 	fetchResponse, err := p.fetcher.Fetch(ctx, productDataURL)
@@ -180,23 +185,25 @@ func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchant
 		return nil, err
 	}
 
-	var apiResponse struct {
-		Data struct {
-			TitleTranslations map[string]string `json:"title_translations"`
-			CategoryIDs       []string          `json:"category_ids"`
-		} `json:"data"`
-	}
+	apiResponse := &ProductResponse{}
 
-	err = json.Unmarshal(bodyBytes, &apiResponse)
+	err = json.Unmarshal(bodyBytes, apiResponse)
 	if err != nil {
 		fmt.Println("Error parsing JSON:", err)
 		return nil, err
 	}
 
-	// Map the data from the nested structure to your flat ProductShopLine struct.
-	productShopLine := &ProductShopLine{
-		Name: apiResponse.Data.TitleTranslations["zh-hant"],
-		Tags: apiResponse.Data.CategoryIDs,
+	// Map the data from the nested structure to your flat Product struct.
+	productShopLine := &Product{
+		Name:            apiResponse.Data.TitleTranslations["zh-hant"],
+		Tags:            apiResponse.Data.CategoryIDs,
+		Price:           apiResponse.Data.Price.Cents,
+		PriceDiscounted: apiResponse.Data.PriceSale.Cents,
+		Description:     apiResponse.Data.DescriptionTranslations["zh-hant"],
+	}
+
+	for _, media := range apiResponse.Data.Media {
+		productShopLine.ImagesURL = append(productShopLine.ImagesURL, media.Images.Original.URL)
 	}
 
 	return productShopLine, nil
