@@ -26,7 +26,7 @@ func NewParser(fetcher ports.HTMLFetcher, logger ports.Logger) *Parser {
 	}
 }
 
-// Parse implements the ProductProvider interface for Shopify.
+// Parse implements the ProductProvider interface.
 func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, error) {
 	// Here, you would use a library like goquery to parse the HTML.
 	// doc, err := goquery.NewDocumentFromReader(html)

@@ -1,9 +1,11 @@
 package shopline
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -50,12 +52,14 @@ func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Pro
 	// Parse the sitemap XML
 	productURLs, err := p.parseProductURLsFromSitemap(body)
 	if err != nil {
+		p.logger.Error("failed to parse sitemap", "error", err)
 		return nil, fmt.Errorf("failed to parse sitemap: %w", err)
 	}
 
 	p.logger.Info("found product urls", "count", len(productURLs))
 	if len(productURLs) < 1 {
-		return nil, fmt.Errorf("no product URLs found in sitemap")
+		p.logger.Error("no product URLs found in sitemap")
+		return nil, errors.New("no product URLs found in sitemap")
 	}
 
 	products := make([]*domain.Product, len(productURLs))
@@ -63,6 +67,7 @@ func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Pro
 		p.logger.Info("processing product url", "url", productURL)
 		product, err := p.fetchAndParseProduct(ctx, productURL)
 		if err != nil {
+			p.logger.Error("error processing product", "url", productURL, "error", err)
 			return nil, fmt.Errorf("error processing %s: %w", productURL, err)
 		}
 		products[i] = product
@@ -76,12 +81,14 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 	// Read the HTML content
 	htmlBytes, err := io.ReadAll(html)
 	if err != nil {
+		p.logger.Error("failed to read HTML", "error", err)
 		return nil, fmt.Errorf("failed to read HTML: %w", err)
 	}
 
 	// Parse merchant ID and product ID from HTML
 	merchantID, productID, err := p.parseMerchantIDAndProductIDFromBytes(htmlBytes)
 	if err != nil {
+		p.logger.Error("failed to parse merchant and product IDs", "error", err)
 		return nil, fmt.Errorf("failed to parse merchant and product IDs: %w", err)
 	}
 
@@ -89,12 +96,14 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 	// For now, let's extract it from the HTML content or use a fallback approach
 	hostname, err := p.extractHostnameFromHTML(htmlBytes)
 	if err != nil {
+		p.logger.Error("failed to extract hostname", "error", err)
 		return nil, fmt.Errorf("failed to extract hostname: %w", err)
 	}
 
 	// Fetch product data from API
 	productData, err := p.fetchProductData(ctx, hostname, merchantID, productID)
 	if err != nil {
+		p.logger.Error("failed to fetch product data", "error", err)
 		return nil, fmt.Errorf("failed to fetch product data: %w", err)
 	}
 
@@ -107,6 +116,7 @@ func (p *Parser) parseProductURLsFromSitemap(body io.Reader) ([]string, error) {
 	decoder := xml.NewDecoder(body)
 
 	if err := decoder.Decode(&sitemap); err != nil {
+		p.logger.Error("failed to decode XML", "error", err)
 		return nil, fmt.Errorf("failed to decode XML: %w", err)
 	}
 
@@ -130,17 +140,20 @@ func (p *Parser) fetchAndParseProduct(ctx context.Context, productURL string) (*
 
 	merchantID, productID, err := p.parseMerchantIDAndProductID(body)
 	if err != nil {
+		p.logger.Error("error parsing merchant/product ID", "url", productURL, "error", err)
 		return nil, fmt.Errorf("error parsing merchant/product ID: %w", err)
 	}
 
 	// Parse URL to get hostname
 	parsedURL, err := url.Parse(productURL)
 	if err != nil {
+		p.logger.Error("failed to parse URL", "url", productURL, "error", err)
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
 	productData, err := p.fetchProductData(ctx, parsedURL.Host, merchantID, productID)
 	if err != nil {
+		p.logger.Error("failed to fetch product data", "host", parsedURL.Host, "merchantID", *merchantID, "productID", *productID, "error", err)
 		return nil, fmt.Errorf("failed to fetch product data: %w", err)
 	}
 
@@ -151,6 +164,7 @@ func (p *Parser) fetchAndParseProduct(ctx context.Context, productURL string) (*
 func (p *Parser) parseMerchantIDAndProductID(htmlBody io.ReadCloser) (*string, *string, error) {
 	bodyBytes, err := io.ReadAll(htmlBody)
 	if err != nil {
+		p.logger.Error("failed to read HTML body", "error", err)
 		return nil, nil, fmt.Errorf("failed to read HTML body: %w", err)
 	}
 
@@ -162,15 +176,15 @@ func (p *Parser) parseMerchantIDAndProductIDFromBytes(bodyBytes []byte) (*string
 
 	jsonMatches := re.FindSubmatch(bodyBytes)
 	if len(jsonMatches) < 2 {
-		return nil, nil, fmt.Errorf("product data not found in HTML body")
+		p.logger.Error("product data not found in HTML body")
+		return nil, nil, errors.New("product data not found in HTML body")
 	}
 
 	rawJson := jsonMatches[1]
 	validJsonString := string(rawJson)
 	// Keep unescaping until no more escaped quotes are found
-	for strings.Contains(validJsonString, `\"`) {
-		validJsonString = strings.ReplaceAll(validJsonString, `\"`, `"`)
-	}
+	validJsonString = strings.ReplaceAll(validJsonString, `\"`, `"`)
+	validJsonString = strings.ReplaceAll(validJsonString, `\"`, `"`)
 
 	var config struct {
 		ProductID  string `json:"_id"`
@@ -179,10 +193,22 @@ func (p *Parser) parseMerchantIDAndProductIDFromBytes(bodyBytes []byte) (*string
 
 	err := json.Unmarshal([]byte(validJsonString), &config)
 	if err != nil {
+		p.logger.Error("error parsing JSON", "error", err)
 		return nil, nil, fmt.Errorf("error parsing JSON: %w", err)
 	}
 
 	return &config.MerchantID, &config.ProductID, nil
+}
+
+func fixMalformedJSON(jsonData []byte) []byte {
+	// This is a simplified example - you'd need more robust regex
+	// to handle all cases properly
+	re := regexp.MustCompile(`"color":\s*"\{"\s*([^}]+)\s*"\}"`)
+	return re.ReplaceAllFunc(jsonData, func(match []byte) []byte {
+		// Extract and properly escape the content
+		// This is a simplified example
+		return bytes.ReplaceAll(match, []byte(`"`), []byte(`\"`))
+	})
 }
 
 func (p *Parser) extractHostnameFromHTML(htmlBytes []byte) (string, error) {
@@ -200,7 +226,8 @@ func (p *Parser) extractHostnameFromHTML(htmlBytes []byte) (string, error) {
 		return string(matches2[1]), nil
 	}
 
-	return "", fmt.Errorf("could not extract hostname from HTML")
+	p.logger.Error("could not extract hostname from HTML")
+	return "", errors.New("could not extract hostname from HTML")
 }
 
 func NewParser(fetcher ports.HTMLFetcher, logger ports.Logger) *Parser {
@@ -249,6 +276,7 @@ func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchant
 	apiResponse := &ProductResponse{}
 	err = json.Unmarshal(bodyBytes, apiResponse)
 	if err != nil {
+		p.logger.Error("error parsing JSON", "error", err)
 		return nil, fmt.Errorf("error parsing JSON: %w", err)
 	}
 

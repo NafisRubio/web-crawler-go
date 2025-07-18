@@ -23,7 +23,6 @@ type HTMLFetcher interface {
 }
 
 // ProductProvider is an interface for parsing product data from HTML.
-// Each provider (Shopify, Wix) will implement this.
 type ProductProvider interface {
 	Parse(ctx context.Context, html io.Reader) (*domain.Product, error)
 	ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error)
