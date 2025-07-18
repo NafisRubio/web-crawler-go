@@ -10,16 +10,19 @@ import (
 
 type Parser struct {
 	fetcher ports.HTMLFetcher
+	logger  ports.Logger
 }
 
 func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error) {
+	p.logger.Info("processing products from shopify", "url", url)
 	//TODO implement me
 	panic("implement me")
 }
 
-func NewParser(fetcher ports.HTMLFetcher) *Parser {
+func NewParser(fetcher ports.HTMLFetcher, logger ports.Logger) *Parser {
 	return &Parser{
 		fetcher: fetcher,
+		logger:  logger,
 	}
 }
 

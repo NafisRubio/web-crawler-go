@@ -25,6 +25,7 @@ type URL struct {
 
 type Parser struct {
 	fetcher ports.HTMLFetcher
+	logger  ports.Logger
 }
 
 type Product struct {
@@ -39,6 +40,7 @@ type Product struct {
 
 func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error) {
 	sitemapUrl := fmt.Sprintf("%s/sitemap.xml", url)
+	p.logger.Info("processing products from sitemap", "url", sitemapUrl)
 	body, err := p.fetcher.Fetch(ctx, sitemapUrl)
 	if err != nil {
 		return nil, err
@@ -51,12 +53,14 @@ func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Pro
 		return nil, fmt.Errorf("failed to parse sitemap: %w", err)
 	}
 
+	p.logger.Info("found product urls", "count", len(productURLs))
 	if len(productURLs) < 1 {
 		return nil, fmt.Errorf("no product URLs found in sitemap")
 	}
 
 	products := make([]*domain.Product, len(productURLs))
 	for i, productURL := range productURLs {
+		p.logger.Info("processing product url", "url", productURL)
 		product, err := p.fetchAndParseProduct(ctx, productURL)
 		if err != nil {
 			return nil, fmt.Errorf("error processing %s: %w", productURL, err)
@@ -117,6 +121,7 @@ func (p *Parser) parseProductURLsFromSitemap(body io.Reader) ([]string, error) {
 }
 
 func (p *Parser) fetchAndParseProduct(ctx context.Context, productURL string) (*domain.Product, error) {
+	p.logger.Info("fetching and parsing product", "url", productURL)
 	body, err := p.fetcher.Fetch(ctx, productURL)
 	if err != nil {
 		return nil, err
@@ -198,9 +203,10 @@ func (p *Parser) extractHostnameFromHTML(htmlBytes []byte) (string, error) {
 	return "", fmt.Errorf("could not extract hostname from HTML")
 }
 
-func NewParser(fetcher ports.HTMLFetcher) *Parser {
+func NewParser(fetcher ports.HTMLFetcher, logger ports.Logger) *Parser {
 	return &Parser{
 		fetcher: fetcher,
+		logger:  logger,
 	}
 }
 
@@ -228,6 +234,7 @@ func (p *Parser) parseProductResponse(apiResponse *ProductResponse) (*domain.Pro
 
 func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchantID *string, productID *string) (*ProductResponse, error) {
 	productDataURL := fmt.Sprintf("https://%s/api/merchants/%s/products/%s", hostname, *merchantID, *productID)
+	p.logger.Info("fetching product data", "url", productDataURL)
 	fetchResponse, err := p.fetcher.Fetch(ctx, productDataURL)
 	if err != nil {
 		return nil, err

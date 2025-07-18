@@ -14,19 +14,23 @@ import (
 	// Core
 	"web-crawler-go/internal/core/ports"
 	"web-crawler-go/internal/core/services"
+	"web-crawler-go/internal/core/services/loggerservice"
 )
 
 func main() {
+	// 0. Initialize Logger
+	logger := loggerservice.NewLoggerService()
+
 	// 1. Initialize Secondary/Driven Adapters
 
 	// Initialize Redis cache
 	redisCache := cache.NewRedisCache("localhost:6379", "", 0)
 
 	// Initialize HTTP fetcher with Redis cache
-	htmlFetcher := fetcher.NewHTTPFetcher(redisCache)
+	htmlFetcher := fetcher.NewHTTPFetcher(redisCache, logger)
 
-	shopifyProvider := shopify.NewParser(htmlFetcher)
-	shoplineProvider := shopline.NewParser(htmlFetcher)
+	shopifyProvider := shopify.NewParser(htmlFetcher, logger)
+	shoplineProvider := shopline.NewParser(htmlFetcher, logger)
 	// When you add Wix: wixProvider := wix.NewParser()
 
 	// 2. Create the Provider Registry
@@ -37,10 +41,10 @@ func main() {
 	// When you add Wix: providerRegistry["wix.com"] = wixProvider
 
 	// 3. Initialize the Core Service (injecting dependencies)
-	productService := services.NewProductService(htmlFetcher, providerRegistry)
+	productService := services.NewProductService(htmlFetcher, providerRegistry, logger)
 
 	// 4. Initialize Primary/Driving Adapters (injecting service)
-	productHandler := http_adapter.NewProductHandler(productService)
+	productHandler := http_adapter.NewProductHandler(productService, logger)
 
 	// 5. Setup Router and Start Server
 	mux := http.NewServeMux()
