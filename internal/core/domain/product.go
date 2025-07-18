@@ -2,8 +2,11 @@ package domain
 
 // Product represents the core business entity.
 type Product struct {
-	Name        string
-	Price       float64
-	ImageURL    string
-	Description string
+	Name            string
+	Price           int
+	PriceDiscounted int
+	Description     string
+	ImagesURL       []string
+	Tags            []string
+	Status          string
 }

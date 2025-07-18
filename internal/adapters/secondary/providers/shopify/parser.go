@@ -12,7 +12,7 @@ type Parser struct {
 	fetcher ports.HTMLFetcher
 }
 
-func (p *Parser) ProcessProducts(ctx context.Context, url string) (*domain.Product, error) {
+func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -31,8 +31,6 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 	// For this example, we'll return mock data.
 	return &domain.Product{
 		Name:        "Shopify Product",
-		Price:       99.99,
 		Description: "Parsed from a Shopify page.",
-		ImageURL:    "http://example.com/image.png",
 	}, nil
 }

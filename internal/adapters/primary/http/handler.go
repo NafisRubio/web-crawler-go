@@ -23,7 +23,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.service.GetProductFromURL(r.Context(), url)
+	product, err := h.service.GetProductsFromURL(r.Context(), url)
 	if err != nil {
 		// In a real app, check error type for better status codes
 		http.Error(w, err.Error(), http.StatusInternalServerError)

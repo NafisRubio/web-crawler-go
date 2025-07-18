@@ -71,7 +71,7 @@ func isDNSPrefetchShopLine(n *html.Node) bool {
 	return false
 }
 
-func (p *productService) GetProductFromURL(ctx context.Context, rawURL string) (*domain.Product, error) {
+func (p *productService) GetProductsFromURL(ctx context.Context, rawURL string) ([]*domain.Product, error) {
 	// 1. Identify the provider from the URL
 	provider, err := p.GetProviderFromURL(ctx, rawURL)
 	if err != nil || provider == nil {
@@ -84,18 +84,5 @@ func (p *productService) GetProductFromURL(ctx context.Context, rawURL string) (
 	}
 	fmt.Printf("products: %+v\n", products)
 
-	// 2. Fetch the HTML content using the fetcher port
-	htmlBody, err := p.fetcher.Fetch(ctx, rawURL)
-	if err != nil {
-		return nil, err
-	}
-	defer htmlBody.Close()
-
-	// 3. Parse the data using the selected provider port
-	product, err := provider.Parse(ctx, htmlBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return product, nil
+	return products, nil
 }

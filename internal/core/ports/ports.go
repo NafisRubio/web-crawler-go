@@ -11,7 +11,7 @@ import (
 // ProductService is the interface for the application's business logic.
 // It's called by primary adapters (e.g., HTTP handlers).
 type ProductService interface {
-	GetProductFromURL(ctx context.Context, url string) (*domain.Product, error)
+	GetProductsFromURL(ctx context.Context, url string) ([]*domain.Product, error)
 	GetProviderFromURL(ctx context.Context, url string) (ProductProvider, error)
 }
 
@@ -26,5 +26,5 @@ type HTMLFetcher interface {
 // Each provider (Shopify, Wix) will implement this.
 type ProductProvider interface {
 	Parse(ctx context.Context, html io.Reader) (*domain.Product, error)
-	ProcessProducts(ctx context.Context, url string) (*domain.Product, error)
+	ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error)
 }
