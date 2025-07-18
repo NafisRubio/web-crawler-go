@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"web-crawler-go/internal/core/domain"
@@ -24,6 +25,11 @@ type URL struct {
 
 type Parser struct {
 	fetcher ports.HTMLFetcher
+}
+
+type ProductShopLine struct {
+	Name string
+	Tags []string
 }
 
 func (p *Parser) ProcessProducts(ctx context.Context, url string) (*domain.Product, error) {
@@ -93,6 +99,19 @@ func (p *Parser) fetchAndParseProduct(ctx context.Context, productURL string) (*
 	}
 	fmt.Printf("merchantID: %s\n", *merchantID)
 	fmt.Printf("productID: %s\n", *productID)
+
+	// Inside your ProcessProducts function:
+	parsedURL, err := url.Parse(productURL)
+	if err != nil {
+		// Handle the error appropriately
+		return nil, fmt.Errorf("failed to parse url: %w", err)
+	}
+
+	productData, err := p.fetchProductData(ctx, parsedURL.Host, merchantID, productID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch product data: %w", err)
+	}
+	fmt.Printf("productData: %+v\n", productData)
 	// Use your existing Parse method to extract product data
 	return p.Parse(ctx, body)
 }
@@ -145,4 +164,40 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 		Description: "Parsed from a Shopline page.",
 		ImageURL:    "http://example.com/shopline-image.png",
 	}, nil
+}
+
+func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchantID *string, productID *string) (*ProductShopLine, error) {
+	//       const productModelUrl = `https://${this.domainName}/api/merchants/${productApplicationLdJson.owner_id}/products/${productApplicationLdJson._id}`
+	productDataURL := fmt.Sprintf("https://%s/api/merchants/%s/products/%s", hostname, *merchantID, *productID)
+	fetchResponse, err := p.fetcher.Fetch(ctx, productDataURL)
+	if err != nil {
+		return nil, err
+	}
+	defer fetchResponse.Close()
+
+	bodyBytes, err := io.ReadAll(fetchResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse struct {
+		Data struct {
+			TitleTranslations map[string]string `json:"title_translations"`
+			CategoryIDs       []string          `json:"category_ids"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal(bodyBytes, &apiResponse)
+	if err != nil {
+		fmt.Println("Error parsing JSON:", err)
+		return nil, err
+	}
+
+	// Map the data from the nested structure to your flat ProductShopLine struct.
+	productShopLine := &ProductShopLine{
+		Name: apiResponse.Data.TitleTranslations["zh-hant"],
+		Tags: apiResponse.Data.CategoryIDs,
+	}
+
+	return productShopLine, nil
 }
