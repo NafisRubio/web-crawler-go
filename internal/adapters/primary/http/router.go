@@ -27,7 +27,7 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /crawl", r.productHandler.CrawlDomain)
 
 	// Product endpoints
-	mux.HandleFunc("GET /product", r.productHandler.GetProduct)
+	mux.HandleFunc("GET /products", r.productHandler.GetProduct)
 
 	return mux
 }

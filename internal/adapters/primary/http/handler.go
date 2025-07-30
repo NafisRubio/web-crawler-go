@@ -22,11 +22,11 @@ func NewProductHandler(service ports.ProductService, logger ports.Logger) *Produ
 }
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("received request", "method", r.Method, "url", r.URL.String())
+	h.logger.Info("received request", "method", r.Method, "domain_name", r.URL.String())
 
 	// 1. Get URL parameter
-	url := r.URL.Query().Get("url")
-	if url == "" {
+	domainName := r.URL.Query().Get("domain_name")
+	if domainName == "" {
 		h.logger.Error("missing URL parameter")
 		response := Response{
 			Status:  "error",
@@ -38,8 +38,19 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Get products from the service
-	products, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), url)
+	// 2. Pagination
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page <= 0 {
+		page = 1
+	}
+
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if pageSize <= 0 {
+		pageSize = 10 // Default page size
+	}
+
+	// 3. Get products from the service
+	products, totalItems, err := h.service.GetProductsByDomainName(r.Context(), domainName, page, pageSize)
 	if err != nil {
 		h.logger.Error("failed to get products", "error", err)
 		response := Response{
@@ -52,39 +63,15 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Pagination
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page <= 0 {
-		page = 1
-	}
-
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if pageSize <= 0 {
-		pageSize = 10 // Default page size
-	}
-
-	totalItems := int64(len(products))
 	totalPages := int(math.Ceil(float64(totalItems) / float64(pageSize)))
-
-	// Calculate start and end indices for slicing
-	startIndex := (page - 1) * pageSize
-	endIndex := startIndex + pageSize
-	if startIndex > len(products) {
-		startIndex = len(products)
-	}
-	if endIndex > len(products) {
-		endIndex = len(products)
-	}
-
-	pagedProducts := products[startIndex:endIndex]
 
 	// 4. Construct the response
 	var nextPage, prevPage string
 	if page < totalPages {
-		nextPage = fmt.Sprintf("%s?url=%s&page=%d&page_size=%d", r.URL.Path, url, page+1, pageSize)
+		nextPage = fmt.Sprintf("%s?domain_name=%s&page=%d&page_size=%d", r.URL.Path, domainName, page+1, pageSize)
 	}
 	if page > 1 {
-		prevPage = fmt.Sprintf("%s?url=%s&page=%d&page_size=%d", r.URL.Path, url, page-1, pageSize)
+		prevPage = fmt.Sprintf("%s?domain_name=%s&page=%d&page_size=%d", r.URL.Path, domainName, page-1, pageSize)
 	}
 
 	pagination := &Pagination{
@@ -96,11 +83,11 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		PrevPage:   prevPage,
 	}
 
-	h.logger.Info("successfully retrieved products", "count", len(pagedProducts), "page", page, "pageSize", pageSize)
+	h.logger.Info("successfully retrieved products", "count", len(products), "page", page, "pageSize", pageSize)
 
 	response := Response{
 		Status:     "success",
-		Data:       pagedProducts,
+		Data:       products,
 		Pagination: pagination,
 	}
 

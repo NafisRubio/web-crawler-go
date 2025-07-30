@@ -94,14 +94,28 @@ func (p *productService) CrawlAndSaveProductsFromURL(ctx context.Context, domain
 	}
 	p.logger.Info("successfully fetched products", "count", len(products))
 
-	// 3. Save each product to MongoDB
+	// 3. Save each product to DB
 	for _, product := range products {
 		if err := p.repository.UpsertProduct(ctx, product); err != nil {
-			p.logger.Error("failed to save product to MongoDB", "error", err, "product", product.Name)
+			p.logger.Error("failed to save product to DB", "error", err, "product", product.Name)
 			// Continue processing other products even if one fails
 			continue
 		}
 	}
 
 	return products, nil
+}
+
+// GetProductsByDomainName return saved products with pagination
+func (p *productService) GetProductsByDomainName(ctx context.Context, domainName string, page, pageSize int) ([]*domain.Product, int, error) {
+	products, err := p.repository.GetProducts(ctx, domainName, page, pageSize)
+	if err != nil {
+		p.logger.Error("failed to get products from DB", "error", err)
+		// Continue processing other products even if one fails
+		return nil, 0, err
+	}
+
+	total, err := p.repository.GetTotalProducts(ctx, domainName)
+
+	return products, total, nil
 }

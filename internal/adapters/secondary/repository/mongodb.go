@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"log"
@@ -99,4 +100,54 @@ func (m *MongoDBRepository) Close(ctx context.Context) error {
 		return fmt.Errorf("failed to disconnect from MongoDB: %w", err)
 	}
 	return nil
+}
+
+func (m *MongoDBRepository) GetProducts(ctx context.Context, domainName string, page, pageSize int) ([]*domain.Product, error) {
+	m.logger.Info("getting products from MongoDB", "domainName", domainName, "page", page, "pageSize", pageSize)
+
+	// Calculate skip value for pagination
+	skip := (page - 1) * pageSize
+
+	// Use aggregation pipeline to return only the data content
+	pipeline := bson.A{
+		bson.M{"$match": bson.M{"domain": domainName}},
+		bson.M{"$replaceRoot": bson.M{"newRoot": "$data"}},
+		bson.M{"$skip": skip},
+		bson.M{"$limit": pageSize},
+	}
+
+	cursor, err := m.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		m.logger.Error("failed to execute aggregation", "error", err)
+		return nil, fmt.Errorf("failed to execute aggregation: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	products := make([]*domain.Product, 0)
+	for cursor.Next(ctx) {
+		var product domain.Product
+		if err := cursor.Decode(&product); err != nil {
+			m.logger.Error("failed to decode document", "error", err)
+			return nil, fmt.Errorf("failed to decode document: %w", err)
+		}
+		products = append(products, &product)
+	}
+	if err := cursor.Err(); err != nil {
+		m.logger.Error("failed to iterate cursor", "error", err)
+		return nil, fmt.Errorf("failed to iterate cursor: %w", err)
+	}
+	m.logger.Info("successfully fetched products", "count", len(products))
+	return products, nil
+}
+
+func (m *MongoDBRepository) GetTotalProducts(ctx context.Context, domainName string) (int, error) {
+	m.logger.Info("getting total products from MongoDB", "domainName", domainName)
+
+	totalCount, err := m.collection.CountDocuments(ctx, bson.M{"domain": domainName})
+	if err != nil {
+		m.logger.Error("failed to count documents", "error", err)
+		return 0, fmt.Errorf("failed to count documents: %w", err)
+	}
+	m.logger.Info("successfully count total products", "count", totalCount)
+	return int(totalCount), nil
 }

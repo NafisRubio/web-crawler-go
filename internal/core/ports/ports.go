@@ -13,6 +13,7 @@ import (
 type ProductService interface {
 	CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error)
 	GetProviderFromURL(ctx context.Context, domainUrl string) (ProductProvider, error)
+	GetProductsByDomainName(ctx context.Context, domainName string, page, pageSize int) ([]*domain.Product, int, error)
 }
 
 // --- Secondary/Driven Ports ---
@@ -32,4 +33,6 @@ type ProductProvider interface {
 type ProductRepository interface {
 	UpsertProduct(ctx context.Context, product *domain.Product) error
 	Close(ctx context.Context) error
+	GetProducts(ctx context.Context, domainName string, page, pageSize int) ([]*domain.Product, error)
+	GetTotalProducts(ctx context.Context, domainName string) (int, error)
 }
