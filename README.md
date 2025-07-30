@@ -4,10 +4,12 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 
 ## Features
 
-- Fetch HTML content from URLs
-- Parse product information using specialized providers
-- Modular architecture with hexagonal design
-- Redis integration for caching
+- **Extensible Provider System:** Easily add new providers to support different e-commerce platforms like Shopify and Shopline.
+- **Product Information Parsing:** Extracts detailed product information including name, price, images, and variants.
+- **Caching Layer:** Utilizes Redis to cache fetched data, reducing redundant requests and improving performance.
+- **Database Integration:** Stores parsed product data in MongoDB for persistence and querying.
+- **Hexagonal Architecture:** A clean and modular design that separates core logic from external concerns, making the application easier to maintain and test.
+- **RESTful API:** Provides a simple and intuitive API for interacting with the web crawler service.
 
 ## Project Structure
 
@@ -16,6 +18,13 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 │   └── server/         # Application entry points
 ├── internal/
 │   ├── adapters/       # External adapters implementation
+│   │   ├── primary/
+│   │   │   └── http/   # HTTP handlers and router
+│   │   └── secondary/
+│   │       ├── cache/  # Redis cache implementation
+│   │       ├── fetcher/# HTTP fetcher for retrieving web content
+│   │       ├── providers/# Parsers for different e-commerce platforms
+│   │       └── repository/# MongoDB repository for data persistence
 │   └── core/
 │       ├── domain/     # Domain models
 │       ├── ports/      # Interface definitions
@@ -25,46 +34,106 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 ## Requirements
 
 - Go 1.24 or higher
-- Redis (optional, for caching)
+- Docker (for running MongoDB and Redis)
+- GoLand (or any other Go-compatible IDE)
 
 ## Dependencies
 
-- github.com/redis/go-redis/v9 - Redis client
-- github.com/playwright-community/playwright-go - Web automation
-- github.com/deckarep/golang-set/v2 - Set implementation
+- `github.com/joho/godotenv` - for managing environment variables
+- `github.com/redis/go-redis/v9` - Redis client for Go
+- `go.mongodb.org/mongo-driver/v2` - MongoDB driver for Go
+- `golang.org/x/net` - for network-related functionalities
 
 ## Getting Started
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/web-crawler-go.git
-cd web-crawler-go
+1.  **Clone the repository:**
 
-# Install dependencies
-go mod download
-```
+    ```bash
+    git clone https://github.com/yourusername/web-crawler-go.git
+    cd web-crawler-go
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    go mod download
+    ```
+
+3.  **Set up environment variables:**
+
+    Create a `.env` file in the root of the project and add the following variables:
+
+    ```
+    # Database Configuration
+    MONGODB_URI=mongodb+srv://<user>:<password>@<cluster-uri>/<database>
+
+    # Redis Configuration
+    REDIS_HOST=localhost:6379
+    REDIS_PASSWORD=
+
+    # Server Configuration
+    PORT=8080
+
+    # Other configurations
+    LOG_LEVEL=info
+    ```
+
+    Replace the placeholder values with your actual MongoDB connection details.
 
 ### Running the Application
 
-```bash
-go run cmd/server/main.go
-```
+1.  **Start the database and cache:**
+
+    You can use Docker to easily run MongoDB and Redis:
+
+    ```bash
+    docker-compose up -d
+    ```
+
+2.  **Run the application:**
+
+    ```bash
+    go run cmd/server/main.go
+    ```
 
 ## Usage
 
-The web crawler service exposes endpoints to fetch product information from supported websites:
+The web crawler service exposes the following endpoint to fetch product information:
 
-```
-POST /api/v1/product
-Body: {"url": "https://example.com/product/123"}
-```
+### Fetch Product Information
+
+- **Endpoint:** `POST /api/v1/product`
+- **Description:** Fetches and parses product information from the given URL.
+- **Body:**
+
+  ```json
+  {
+    "url": "https://example.com/product/123"
+  }
+  ```
+
+- **Response:**
+
+  Returns a JSON object with the parsed product information.
 
 ## Adding New Providers
 
-To add support for a new website, implement the provider interface in the internal/adapters directory and register it with the service.
+To add support for a new website, you need to implement the `Parser` interface from the `internal/core/ports` directory.
+
+1.  **Create a new provider directory:**
+
+    Create a new directory under `internal/adapters/secondary/providers` for the new provider (e.g., `internal/adapters/secondary/providers/newprovider`).
+
+2.  **Implement the `Parser` interface:**
+
+    Create a new Go file in the provider directory and implement the `Parse` method. This method will contain the logic for parsing the product information from the website's HTML.
+
+3.  **Register the new provider:**
+
+    Register the new provider in the `ProductService` so that it can be used by the application.
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
