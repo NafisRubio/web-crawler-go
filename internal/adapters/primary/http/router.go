@@ -23,6 +23,9 @@ func NewRouter(productService ports.ProductService, logger ports.Logger) *Router
 func (r *Router) SetupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Crawler
+	mux.HandleFunc("GET /crawl", r.productHandler.CrawlDomain)
+
 	// Product endpoints
 	mux.HandleFunc("GET /product", r.productHandler.GetProduct)
 

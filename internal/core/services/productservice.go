@@ -28,10 +28,10 @@ func NewProductService(fetcher ports.HTMLFetcher, registry map[string]ports.Prod
 	}
 }
 
-func (p *productService) GetProviderFromURL(ctx context.Context, rawUrl string) (ports.ProductProvider, error) {
-	p.logger.Info("fetching HTML", "url", rawUrl)
+func (p *productService) GetProviderFromURL(ctx context.Context, domainUrl string) (ports.ProductProvider, error) {
+	p.logger.Info("fetching HTML", "domainUrl", domainUrl)
 	// 1. Fetch the HTML
-	htmlBody, err := p.fetcher.Fetch(ctx, rawUrl)
+	htmlBody, err := p.fetcher.Fetch(ctx, domainUrl)
 	if err != nil {
 		p.logger.Error("failed to fetch HTML", "error", err)
 		return nil, err
@@ -77,17 +77,17 @@ func isDNSPrefetchShopLine(n *html.Node) bool {
 	return false
 }
 
-func (p *productService) GetProductsFromURL(ctx context.Context, rawURL string) ([]*domain.Product, error) {
-	p.logger.Info("getting products from url", "url", rawURL)
+func (p *productService) GetProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error) {
+	p.logger.Info("getting products from domainUrl", "domainUrl", domainUrl)
 	// 1. Identify the provider from the URL
-	provider, err := p.GetProviderFromURL(ctx, rawURL)
+	provider, err := p.GetProviderFromURL(ctx, domainUrl)
 	if err != nil || provider == nil {
-		p.logger.Error("failed to get provider from url", "error", err)
+		p.logger.Error("failed to get provider from domainUrl", "error", err)
 		return nil, ErrProviderNotFound
 	}
 	p.logger.Info("provider found", "provider", provider)
 	// 2. Fetch the HTML content using the fetcher port
-	products, err := provider.ProcessProducts(ctx, rawURL)
+	products, err := provider.ProcessProducts(ctx, domainUrl)
 	if err != nil {
 		p.logger.Error("failed to process products", "error", err)
 		return nil, err

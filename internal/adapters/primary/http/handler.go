@@ -107,3 +107,46 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("received request", "method", r.Method, "domainName", r.URL.String())
+
+	// 1. Get URL parameter
+	domainName := r.URL.Query().Get("domain_name")
+	if domainName == "" {
+		h.logger.Error("missing Domain parameter")
+		response := Response{
+			Status:  "error",
+			Message: "URL parameter is required",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 2. Get products from the service
+	domainUrl := "https://" + domainName
+	products, err := h.service.GetProductsFromURL(r.Context(), domainUrl)
+	if err != nil {
+		h.logger.Error("failed to get products", "error", err)
+		response := Response{
+			Status:  "error",
+			Message: err.Error(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	h.logger.Info("successfully crawled domainName")
+
+	response := Response{
+		Status: "success",
+		Data:   products,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
