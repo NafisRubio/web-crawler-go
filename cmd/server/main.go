@@ -80,11 +80,10 @@ func main() {
 	productService := services.NewProductService(htmlFetcher, providerRegistry, mongoDBRepo, logger)
 
 	// 4. Initialize Primary/Driving Adapters (injecting service)
-	productHandler := httpadapter.NewProductHandler(productService, logger)
+	router := httpadapter.NewRouter(productService, logger)
 
 	// 5. Setup Router and Start Server
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /product", productHandler.GetProduct)
+	mux := router.SetupRoutes()
 
 	port := getEnvWithDefault("PORT", "8080")
 	log.Printf("Server starting on :%s...", port)
