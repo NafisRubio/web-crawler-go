@@ -83,11 +83,11 @@ func main() {
 	router := httpadapter.NewRouter(productService, logger)
 
 	// 5. Setup Router and Start Server
-	mux := router.SetupRoutes()
+	handler := router.SetupRoutes()
 
 	port := getEnvWithDefault("PORT", "8080")
 	log.Printf("Server starting on :%s...", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatalf("could not start server: %v", err)
 	}
 }
