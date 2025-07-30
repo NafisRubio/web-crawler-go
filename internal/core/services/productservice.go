@@ -14,14 +14,16 @@ var ErrProviderNotFound = errors.New("suitable provider not found for the given 
 type productService struct {
 	fetcher          ports.HTMLFetcher
 	providerRegistry map[string]ports.ProductProvider // Maps hostname -> provider
+	repository       ports.ProductRepository
 	logger           ports.Logger
 }
 
 // NewProductService creates a new instance of the product service.
-func NewProductService(fetcher ports.HTMLFetcher, registry map[string]ports.ProductProvider, logger ports.Logger) ports.ProductService {
+func NewProductService(fetcher ports.HTMLFetcher, registry map[string]ports.ProductProvider, repository ports.ProductRepository, logger ports.Logger) ports.ProductService {
 	return &productService{
 		fetcher:          fetcher,
 		providerRegistry: registry,
+		repository:       repository,
 		logger:           logger,
 	}
 }
@@ -91,6 +93,15 @@ func (p *productService) GetProductsFromURL(ctx context.Context, rawURL string) 
 		return nil, err
 	}
 	p.logger.Info("successfully fetched products", "count", len(products))
+
+	// 3. Save each product to MongoDB
+	for _, product := range products {
+		if err := p.repository.SaveProduct(ctx, product); err != nil {
+			p.logger.Error("failed to save product to MongoDB", "error", err, "product", product.Name)
+			// Continue processing other products even if one fails
+			continue
+		}
+	}
 
 	return products, nil
 }

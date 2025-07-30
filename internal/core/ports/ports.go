@@ -27,3 +27,9 @@ type ProductProvider interface {
 	Parse(ctx context.Context, html io.Reader) (*domain.Product, error)
 	ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error)
 }
+
+// ProductRepository is an interface for persisting products.
+type ProductRepository interface {
+	SaveProduct(ctx context.Context, product *domain.Product) error
+	Close(ctx context.Context) error
+}
