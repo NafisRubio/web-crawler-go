@@ -15,20 +15,40 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 
 ```
 ├── cmd/
-│   └── server/         # Application entry points
+│   └── server/
+│       └── main.go
 ├── internal/
-│   ├── adapters/       # External adapters implementation
+│   ├── adapters/
 │   │   ├── primary/
-│   │   │   └── http/   # HTTP handlers and router
+│   │   │   └── http/
+│   │   │       ├── handler.go
+│   │   │       ├── middleware.go
+│   │   │       ├── response.go
+│   │   │       └── router.go
 │   │   └── secondary/
-│   │       ├── cache/  # Redis cache implementation
-│   │       ├── fetcher/# HTTP fetcher for retrieving web content
-│   │       ├── providers/# Parsers for different e-commerce platforms
-│   │       └── repository/# MongoDB repository for data persistence
+│   │       ├── cache/
+│   │       │   └── redis.go
+│   │       ├── fetcher/
+│   │       │   └── http.go
+│   │       ├── providers/
+│   │       │   ├── shopify/
+│   │       │   │   └── parser.go
+│   │       │   └── shopline/
+│   │       │       ├── parser.go
+│   │       │       └── types.go
+│   │       └── repository/
+│   │           └── mongodb.go
 │   └── core/
-│       ├── domain/     # Domain models
-│       ├── ports/      # Interface definitions
-│       └── services/   # Business logic implementation
+│       ├── domain/
+│       │   └── product.go
+│       ├── ports/
+│       │   ├── cache.go
+│       │   ├── logger.go
+│       │   └── ports.go
+│       └── services/
+│           ├── productservice.go
+│           └── loggerservice/
+│               └── logger.go
 ```
 
 ## Requirements
