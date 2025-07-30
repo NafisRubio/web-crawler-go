@@ -77,20 +77,20 @@ func isDNSPrefetchShopLine(n *html.Node) bool {
 	return false
 }
 
-func (p *productService) CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error) {
+func (p *productService) CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) (int, error) {
 	p.logger.Info("getting products from domainUrl", "domainUrl", domainUrl)
 	// 1. Identify the provider from the URL
 	provider, err := p.GetProviderFromURL(ctx, domainUrl)
 	if err != nil || provider == nil {
 		p.logger.Error("failed to get provider from domainUrl", "error", err)
-		return nil, ErrProviderNotFound
+		return 0, ErrProviderNotFound
 	}
 	p.logger.Info("provider found", "provider", provider)
 	// 2. Fetch the HTML content using the fetcher port
 	products, err := provider.ProcessProducts(ctx, domainUrl)
 	if err != nil {
 		p.logger.Error("failed to process products", "error", err)
-		return nil, err
+		return 0, err
 	}
 	p.logger.Info("successfully fetched products", "count", len(products))
 
@@ -103,7 +103,8 @@ func (p *productService) CrawlAndSaveProductsFromURL(ctx context.Context, domain
 		}
 	}
 
-	return products, nil
+	productsCount := len(products)
+	return productsCount, nil
 }
 
 // GetProductsByDomainName return saved products with pagination

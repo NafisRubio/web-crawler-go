@@ -11,7 +11,7 @@ import (
 // ProductService is the interface for the application's business logic.
 // It's called by primary adapters (e.g., HTTP handlers).
 type ProductService interface {
-	CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error)
+	CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) (int, error)
 	GetProviderFromURL(ctx context.Context, domainUrl string) (ProductProvider, error)
 	GetProductsByDomainName(ctx context.Context, domainName string, page, pageSize int) ([]*domain.Product, int, error)
 }

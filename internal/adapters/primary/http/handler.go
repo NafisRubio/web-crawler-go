@@ -114,9 +114,9 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Get products from the service
 	domainUrl := "https://" + domainName
-	products, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), domainUrl)
+	productsCount, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), domainUrl)
 	if err != nil {
-		h.logger.Error("failed to get products", "error", err)
+		h.logger.Error("failed to get productsCount", "error", err)
 		response := Response{
 			Status:  "error",
 			Message: err.Error(),
@@ -131,7 +131,7 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 
 	response := Response{
 		Status: "success",
-		Data:   products,
+		Data:   map[string]int{"productsCount": productsCount},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
