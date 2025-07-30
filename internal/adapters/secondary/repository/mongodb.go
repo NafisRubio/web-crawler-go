@@ -52,9 +52,9 @@ func NewMongoDBRepository(ctx context.Context, connectionURI, dbName, collection
 	}, nil
 }
 
-// SaveProduct saves a product to MongoDB
-func (m *MongoDBRepository) SaveProduct(ctx context.Context, product *domain.Product) error {
-	m.logger.Info("saving product to MongoDB", "name", product.Name)
+// UpsertProduct saves a product to MongoDB
+func (m *MongoDBRepository) UpsertProduct(ctx context.Context, product *domain.Product) error {
+	m.logger.Info("upserting product to MongoDB", "name", product.Name)
 
 	type Document struct {
 		Domain string         `bson:"domain"`
@@ -66,14 +66,28 @@ func (m *MongoDBRepository) SaveProduct(ctx context.Context, product *domain.Pro
 		Data:   *product,
 	}
 
-	// Insert the product into the collection
-	_, err := m.collection.InsertOne(ctx, document)
-	if err != nil {
-		m.logger.Error("failed to save product to MongoDB", "error", err)
-		return fmt.Errorf("failed to save product to MongoDB: %w", err)
+	// Define the filter to find existing document
+	filter := map[string]interface{}{
+		"domain":    document.Domain,
+		"data.name": product.Name,
 	}
 
-	m.logger.Info("product saved to MongoDB", "name", product.Name)
+	// Set upsert option to true
+	opts := options.Replace().SetUpsert(true)
+
+	// Upsert the product into the collection
+	result, err := m.collection.ReplaceOne(ctx, filter, document, opts)
+	if err != nil {
+		m.logger.Error("failed to upsert product to MongoDB", "error", err)
+		return fmt.Errorf("failed to upsert product to MongoDB: %w", err)
+	}
+
+	if result.UpsertedCount > 0 {
+		m.logger.Info("product inserted to MongoDB", "name", product.Name, "upsertedID", result.UpsertedID)
+	} else {
+		m.logger.Info("product updated in MongoDB", "name", product.Name, "modifiedCount", result.ModifiedCount)
+	}
+
 	return nil
 }
 

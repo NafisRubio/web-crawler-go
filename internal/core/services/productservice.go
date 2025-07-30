@@ -77,7 +77,7 @@ func isDNSPrefetchShopLine(n *html.Node) bool {
 	return false
 }
 
-func (p *productService) GetProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error) {
+func (p *productService) CrawlAndSaveProductsFromURL(ctx context.Context, domainUrl string) ([]*domain.Product, error) {
 	p.logger.Info("getting products from domainUrl", "domainUrl", domainUrl)
 	// 1. Identify the provider from the URL
 	provider, err := p.GetProviderFromURL(ctx, domainUrl)
@@ -96,7 +96,7 @@ func (p *productService) GetProductsFromURL(ctx context.Context, domainUrl strin
 
 	// 3. Save each product to MongoDB
 	for _, product := range products {
-		if err := p.repository.SaveProduct(ctx, product); err != nil {
+		if err := p.repository.UpsertProduct(ctx, product); err != nil {
 			p.logger.Error("failed to save product to MongoDB", "error", err, "product", product.Name)
 			// Continue processing other products even if one fails
 			continue

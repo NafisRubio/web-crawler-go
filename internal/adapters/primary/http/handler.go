@@ -39,7 +39,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Get products from the service
-	products, err := h.service.GetProductsFromURL(r.Context(), url)
+	products, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), url)
 	if err != nil {
 		h.logger.Error("failed to get products", "error", err)
 		response := Response{
@@ -127,7 +127,7 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Get products from the service
 	domainUrl := "https://" + domainName
-	products, err := h.service.GetProductsFromURL(r.Context(), domainUrl)
+	products, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), domainUrl)
 	if err != nil {
 		h.logger.Error("failed to get products", "error", err)
 		response := Response{
