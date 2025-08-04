@@ -8,6 +8,11 @@ import (
 	"web-crawler-go/internal/core/ports"
 )
 
+const (
+	DNSPrefetchRel = "dns-prefetch"
+	ShopLineURL    = "https://cdn.shoplineapp.com"
+)
+
 var ErrProviderNotFound = errors.New("suitable provider not found for the given URL")
 
 // productService implements the ProductService port.
@@ -44,7 +49,7 @@ func (p *productService) GetProviderFromURL(ctx context.Context, domainUrl strin
 		return nil, err
 	}
 
-	if isDNSPrefetchShopLine(doc) {
+	if hasDNSPrefetchLink(doc, ShopLineURL) {
 		provider := "shopline.tw"
 		p.logger.Info("provider identified", "provider", provider)
 		return p.providerRegistry[provider], nil
@@ -53,24 +58,23 @@ func (p *productService) GetProviderFromURL(ctx context.Context, domainUrl strin
 	return nil, ErrProviderNotFound
 }
 
-func isDNSPrefetchShopLine(n *html.Node) bool {
+func hasDNSPrefetchLink(n *html.Node, targetURL string) bool {
 	if n.Type == html.ElementNode && n.Data == "link" {
 		var rel, href string
 		for _, attr := range n.Attr {
-			if attr.Key == "rel" {
+			switch attr.Key {
+			case "rel":
 				rel = attr.Val
-			}
-			if attr.Key == "href" {
+			case "href":
 				href = attr.Val
 			}
 		}
-		if rel == "dns-prefetch" && href == "https://cdn.shoplineapp.com" {
+		if rel == DNSPrefetchRel && href == targetURL {
 			return true
 		}
 	}
-
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if found := isDNSPrefetchShopLine(c); found {
+		if hasDNSPrefetchLink(c, targetURL) {
 			return true
 		}
 	}
