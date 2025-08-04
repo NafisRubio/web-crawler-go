@@ -85,14 +85,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Info("successfully retrieved products", "count", len(products), "page", page, "pageSize", pageSize)
 
-	response := Response{
-		Status:     "success",
-		Data:       products,
-		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	RespondSuccess(w, h.logger, http.StatusOK, "Products retrieved successfully", products, pagination)
 }
 
 func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
@@ -129,11 +122,5 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Info("successfully crawled domainName")
 
-	response := Response{
-		Status: "success",
-		Data:   map[string]int{"productsCount": productsCount},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	RespondSuccess(w, h.logger, http.StatusOK, "Domain crawled successfully", map[string]int{"productsCount": productsCount}, nil)
 }
