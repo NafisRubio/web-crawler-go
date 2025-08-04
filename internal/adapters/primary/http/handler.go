@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -28,13 +27,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	domainName := r.URL.Query().Get("domain_name")
 	if domainName == "" {
 		h.logger.Error("missing URL parameter")
-		response := Response{
-			Status:  "error",
-			Message: "URL parameter is required",
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		RespondError(w, h.logger, http.StatusBadRequest, "URL parameter is required", nil)
 		return
 	}
 
@@ -53,13 +46,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	products, totalItems, err := h.service.GetProductsByDomainName(r.Context(), domainName, page, pageSize)
 	if err != nil {
 		h.logger.Error("failed to get products", "error", err)
-		response := Response{
-			Status:  "error",
-			Message: err.Error(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		RespondError(w, h.logger, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
@@ -95,13 +82,7 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 	domainName := r.URL.Query().Get("domain_name")
 	if domainName == "" {
 		h.logger.Error("missing Domain parameter")
-		response := Response{
-			Status:  "error",
-			Message: "URL parameter is required",
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		RespondError(w, h.logger, http.StatusBadRequest, "URL parameter is required", nil)
 		return
 	}
 
@@ -110,13 +91,7 @@ func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
 	productsCount, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), domainUrl)
 	if err != nil {
 		h.logger.Error("failed to get productsCount", "error", err)
-		response := Response{
-			Status:  "error",
-			Message: err.Error(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		RespondError(w, h.logger, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
