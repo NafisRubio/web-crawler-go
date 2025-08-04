@@ -3,7 +3,7 @@ package fetcher
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -29,7 +29,7 @@ func NewHTTPFetcher(cache ports.CacheService, logger ports.Logger) *HTTPFetcher 
 
 // generateCacheKey creates a unique key for caching based on the URL
 func generateCacheKey(url string) string {
-	hash := md5.Sum([]byte(url))
+	hash := sha256.Sum256([]byte(url))
 	return "url:" + hex.EncodeToString(hash[:])
 }
 
