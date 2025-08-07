@@ -4,305 +4,269 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSE Test Client</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .controls {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .connected { background: #d4edda; color: #155724; }
-        .disconnected { background: #f8d7da; color: #721c24; }
-        .error { background: #f8d7da; color: #721c24; }
-        .messages {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            background: #fafafa;
-        }
-        .message {
-            margin: 5px 0;
-            padding: 8px;
-            border-left: 4px solid #007bff;
-            background: white;
-            border-radius: 3px;
-        }
-        .message.crawl_started { border-left-color: #28a745; }
-        .message.provider_identified { border-left-color: #17a2b8; }
-        .message.products_fetched { border-left-color: #ffc107; }
-        .message.save_progress { border-left-color: #fd7e14; }
-        .message.crawl_completed { border-left-color: #28a745; }
-        .message.crawl_error { border-left-color: #dc3545; }
-        .message.heartbeat { border-left-color: #6c757d; opacity: 0.7; }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #6c757d; cursor: not-allowed; }
-        input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            width: 300px;
-        }
-        .timestamp {
-            font-size: 0.8em;
-            color: #666;
-            float: right;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e9ecef;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: #28a745;
-            transition: width 0.3s ease;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>SSE Test Client - Web Crawler</h1>
-        
-        <div class="controls">
-            <h3>Connection Controls</h3>
-            <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="Server URL">
-            <input type="text" id="clientId" value="" placeholder="Client ID (optional)">
-            <button id="connectBtn" onclick="connect()">Connect to SSE</button>
-            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
-            <button id="statusBtn" onclick="getStatus()">Get SSE Status</button>
-            <button id="clearBtn" onclick="clearMessages()">Clear Messages</button>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-6xl p-5">
+    <div class="bg-white p-5 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">SSE Test Client - Web Crawler</h1>
+
+        <div class="mb-5 p-4 bg-gray-50 rounded-md">
+            <h3 class="font-bold text-lg mb-2">Connection Controls</h3>
+            <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="Server URL"
+                   class="p-2 border border-gray-300 rounded-md w-80">
+            <input type="text" id="clientId" value="" placeholder="Client ID (optional)"
+                   class="p-2 border border-gray-300 rounded-md w-80">
+            <button id="connectBtn" onclick="connect()"
+                    class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 m-1">Connect to SSE
+            </button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled
+                    class="bg-gray-500 text-white font-bold py-2 px-4 rounded cursor-not-allowed m-1">Disconnect
+            </button>
+            <button id="statusBtn" onclick="getStatus()"
+                    class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 m-1">Get SSE Status
+            </button>
+            <button id="clearBtn" onclick="clearMessages()"
+                    class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 m-1">Clear Messages
+            </button>
         </div>
 
-        <div class="controls">
-            <h3>Crawl Domain</h3>
-            <input type="text" id="domainName" value="shopline.tw" placeholder="Domain name (e.g., shopline.tw)">
-            <button id="crawlBtn" onclick="crawlDomain()">Start Crawling</button>
-            <div id="progressContainer" style="display: none;">
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        <div class="mb-5 p-4 bg-gray-50 rounded-md">
+            <h3 class="font-bold text-lg mb-2">Crawl Domain</h3>
+            <input type="text" id="domainName" value="shopline.tw" placeholder="Domain name (e.g., shopline.tw)"
+                   class="p-2 border border-gray-300 rounded-md w-80">
+            <button id="crawlBtn" onclick="crawlDomain()"
+                    class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 m-1">Start Crawling
+            </button>
+            <div id="progressContainer" style="display: none;" class="mt-2">
+                <div class="w-full bg-gray-200 rounded-full h-5">
+                    <div id="progressFill" class="bg-green-500 h-5 rounded-full transition-all duration-300 ease-in-out"
+                         style="width: 0%"></div>
                 </div>
-                <div id="progressText">0%</div>
+                <div id="progressText" class="text-center text-sm font-semibold">0%</div>
             </div>
         </div>
 
-        <div id="connectionStatus" class="status disconnected">Disconnected</div>
-        
-        <h3>Real-time Messages</h3>
-        <div id="messages" class="messages"></div>
+        <div id="connectionStatus" class="p-2 my-2 rounded-md font-bold bg-red-200 text-red-800">Disconnected</div>
+
+        <h3 class="text-xl font-bold mb-2">Real-time Messages</h3>
+        <div id="messages" class="max-h-96 overflow-y-auto border border-gray-300 p-2 bg-gray-50"></div>
     </div>
+</div>
 
-    <script>
-        let eventSource = null;
-        let isConnected = false;
+<script>
+    let eventSource = null;
+    let isConnected = false;
 
-        function connect() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            const clientId = document.getElementById('clientId').value;
-            
-            if (eventSource) {
-                eventSource.close();
-            }
+    function connect() {
+        const serverUrl = document.getElementById('serverUrl').value;
+        const clientId = document.getElementById('clientId').value;
 
-            const sseUrl = `${serverUrl}/api/v1/sse${clientId ? '?client_id=' + encodeURIComponent(clientId) : ''}`;
-            
-            try {
-                eventSource = new EventSource(sseUrl);
-                
-                eventSource.onopen = function(event) {
-                    isConnected = true;
-                    updateConnectionStatus('Connected to SSE stream', 'connected');
-                    document.getElementById('connectBtn').disabled = true;
-                    document.getElementById('disconnectBtn').disabled = false;
-                    addMessage('system', 'Connected to SSE stream', {});
-                };
-
-                eventSource.onmessage = function(event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        addMessage('message', 'Received message', data);
-                    } catch (e) {
-                        addMessage('error', 'Failed to parse message', { error: e.message, data: event.data });
-                    }
-                };
-
-                eventSource.addEventListener('connected', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('connected', 'Connection established', data);
-                });
-
-                eventSource.addEventListener('crawl_started', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('crawl_started', 'Crawling started', data);
-                    showProgress();
-                });
-
-                eventSource.addEventListener('provider_identified', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('provider_identified', 'Provider identified', data);
-                });
-
-                eventSource.addEventListener('products_fetched', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('products_fetched', 'Products fetched', data);
-                });
-
-                eventSource.addEventListener('save_progress', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('save_progress', 'Save progress', data);
-                    updateProgress(data.progress_percent || 0);
-                });
-
-                eventSource.addEventListener('crawl_completed', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('crawl_completed', 'Crawling completed', data);
-                    updateProgress(100);
-                    setTimeout(() => hideProgress(), 3000);
-                });
-
-                eventSource.addEventListener('crawl_error', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('crawl_error', 'Crawl error', data);
-                    hideProgress();
-                });
-
-                eventSource.addEventListener('heartbeat', function(event) {
-                    const data = JSON.parse(event.data);
-                    addMessage('heartbeat', 'Heartbeat', data);
-                });
-
-                eventSource.onerror = function(event) {
-                    isConnected = false;
-                    updateConnectionStatus('Connection error or closed', 'error');
-                    document.getElementById('connectBtn').disabled = false;
-                    document.getElementById('disconnectBtn').disabled = true;
-                    addMessage('error', 'SSE connection error', { event: event });
-                };
-
-            } catch (error) {
-                updateConnectionStatus('Failed to connect: ' + error.message, 'error');
-                addMessage('error', 'Connection failed', { error: error.message });
-            }
+        if (eventSource) {
+            eventSource.close();
         }
 
-        function disconnect() {
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
-            isConnected = false;
-            updateConnectionStatus('Disconnected', 'disconnected');
-            document.getElementById('connectBtn').disabled = false;
-            document.getElementById('disconnectBtn').disabled = true;
-            hideProgress();
-        }
+        const sseUrl = `${serverUrl}/api/v1/sse${clientId ? '?client_id=' + encodeURIComponent(clientId) : ''}`;
 
-        function updateConnectionStatus(message, type) {
-            const statusEl = document.getElementById('connectionStatus');
-            statusEl.textContent = message;
-            statusEl.className = `status ${type}`;
-        }
+        try {
+            eventSource = new EventSource(sseUrl);
 
-        function addMessage(type, title, data) {
-            const messagesEl = document.getElementById('messages');
-            const messageEl = document.createElement('div');
-            messageEl.className = `message ${type}`;
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const dataStr = Object.keys(data).length > 0 ? JSON.stringify(data, null, 2) : '';
-            
-            messageEl.innerHTML = `
-                <div class="timestamp">${timestamp}</div>
-                <strong>${title}</strong>
-                ${dataStr ? `<pre style="margin: 5px 0; font-size: 0.9em;">${dataStr}</pre>` : ''}
+            eventSource.onopen = function (event) {
+                isConnected = true;
+                updateConnectionStatus('Connected to SSE stream', 'connected');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                addMessage('system', 'Connected to SSE stream', {});
+            };
+
+            eventSource.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage('message', 'Received message', data);
+                } catch (e) {
+                    addMessage('error', 'Failed to parse message', {error: e.message, data: event.data});
+                }
+            };
+
+            eventSource.addEventListener('connected', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('connected', 'Connection established', data);
+            });
+
+            eventSource.addEventListener('crawl_started', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('crawl_started', 'Crawling started', data);
+                showProgress();
+            });
+
+            eventSource.addEventListener('provider_identified', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('provider_identified', 'Provider identified', data);
+            });
+
+            eventSource.addEventListener('products_fetched', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('products_fetched', 'Products fetched', data);
+            });
+
+            eventSource.addEventListener('save_progress', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('save_progress', 'Save progress', data);
+                updateProgress(data.progress_percent || 0);
+            });
+
+            eventSource.addEventListener('crawl_completed', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('crawl_completed', 'Crawling completed', data);
+                updateProgress(100);
+                setTimeout(() => hideProgress(), 3000);
+            });
+
+            eventSource.addEventListener('crawl_error', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('crawl_error', 'Crawl error', data);
+                hideProgress();
+            });
+
+            eventSource.addEventListener('heartbeat', function (event) {
+                const data = JSON.parse(event.data);
+                addMessage('heartbeat', 'Heartbeat', data);
+            });
+
+            eventSource.onerror = function (event) {
+                isConnected = false;
+                updateConnectionStatus('Connection error or closed', 'error');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                addMessage('error', 'SSE connection error', {event: event});
+            };
+
+        } catch (error) {
+            updateConnectionStatus('Failed to connect: ' + error.message, 'error');
+            addMessage('error', 'Connection failed', {error: error.message});
+        }
+    }
+
+    function disconnect() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+        isConnected = false;
+        updateConnectionStatus('Disconnected', 'disconnected');
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('disconnectBtn').disabled = true;
+        hideProgress();
+    }
+
+    function updateConnectionStatus(message, type) {
+        const statusEl = document.getElementById('connectionStatus');
+        statusEl.textContent = message;
+        let classes = 'p-2 my-2 rounded-md font-bold';
+        if (type === 'connected') {
+            classes += ' bg-green-200 text-green-800';
+        } else if (type === 'disconnected') {
+            classes += ' bg-red-200 text-red-800';
+        } else if (type === 'error') {
+            classes += ' bg-red-200 text-red-800';
+        }
+        statusEl.className = classes;
+    }
+
+    function getMessageClasses(type) {
+        let baseClasses = 'my-1 p-2 bg-white rounded-sm';
+        switch (type) {
+            case 'crawl_started':
+                return `${baseClasses} border-l-4 border-green-500`;
+            case 'provider_identified':
+                return `${baseClasses} border-l-4 border-cyan-500`;
+            case 'products_fetched':
+                return `${baseClasses} border-l-4 border-yellow-400`;
+            case 'save_progress':
+                return `${baseClasses} border-l-4 border-orange-500`;
+            case 'crawl_completed':
+                return `${baseClasses} border-l-4 border-green-500`;
+            case 'crawl_error':
+                return `${baseClasses} border-l-4 border-red-500`;
+            case 'heartbeat':
+                return `${baseClasses} border-l-4 border-gray-500 opacity-70`;
+            default:
+                return `${baseClasses} border-l-4 border-blue-500`;
+        }
+    }
+
+    function addMessage(type, title, data) {
+        const messagesEl = document.getElementById('messages');
+        const messageEl = document.createElement('div');
+        messageEl.className = getMessageClasses(type);
+
+        const timestamp = new Date().toLocaleTimeString();
+        const dataStr = Object.keys(data).length > 0 ? JSON.stringify(data, null, 2) : '';
+
+        messageEl.innerHTML = `
+                <div class="text-xs text-gray-500 float-right">${timestamp}</div>
+                <strong class="font-semibold">${title}</strong>
+                ${dataStr ? `<pre class="mt-1 text-sm">${dataStr}</pre>` : ''}
             `;
-            
-            messagesEl.appendChild(messageEl);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        messagesEl.appendChild(messageEl);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function clearMessages() {
+        document.getElementById('messages').innerHTML = '';
+    }
+
+    function showProgress() {
+        document.getElementById('progressContainer').style.display = 'block';
+        updateProgress(0);
+    }
+
+    function hideProgress() {
+        document.getElementById('progressContainer').style.display = 'none';
+    }
+
+    function updateProgress(percent) {
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        progressFill.style.width = percent + '%';
+        progressText.textContent = Math.round(percent) + '%';
+    }
+
+    async function getStatus() {
+        const serverUrl = document.getElementById('serverUrl').value;
+        try {
+            const response = await fetch(`${serverUrl}/api/v1/sse/status`);
+            const data = await response.json();
+            addMessage('status', 'SSE Status', data);
+        } catch (error) {
+            addMessage('error', 'Failed to get status', {error: error.message});
+        }
+    }
+
+    async function crawlDomain() {
+        const serverUrl = document.getElementById('serverUrl').value;
+        const domainName = document.getElementById('domainName').value;
+
+        if (!domainName) {
+            alert('Please enter a domain name');
+            return;
         }
 
-        function clearMessages() {
-            document.getElementById('messages').innerHTML = '';
+        try {
+            const response = await fetch(`${serverUrl}/api/v1/crawl?domain_name=${encodeURIComponent(domainName)}`);
+            const data = await response.json();
+            addMessage('crawl_request', 'Crawl request sent', data);
+        } catch (error) {
+            addMessage('error', 'Failed to start crawling', {error: error.message});
         }
+    }
 
-        function showProgress() {
-            document.getElementById('progressContainer').style.display = 'block';
-            updateProgress(0);
-        }
-
-        function hideProgress() {
-            document.getElementById('progressContainer').style.display = 'none';
-        }
-
-        function updateProgress(percent) {
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            progressFill.style.width = percent + '%';
-            progressText.textContent = Math.round(percent) + '%';
-        }
-
-        async function getStatus() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            try {
-                const response = await fetch(`${serverUrl}/api/v1/sse/status`);
-                const data = await response.json();
-                addMessage('status', 'SSE Status', data);
-            } catch (error) {
-                addMessage('error', 'Failed to get status', { error: error.message });
-            }
-        }
-
-        async function crawlDomain() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            const domainName = document.getElementById('domainName').value;
-            
-            if (!domainName) {
-                alert('Please enter a domain name');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${serverUrl}/api/v1/crawl?domain_name=${encodeURIComponent(domainName)}`);
-                const data = await response.json();
-                addMessage('crawl_request', 'Crawl request sent', data);
-            } catch (error) {
-                addMessage('error', 'Failed to start crawling', { error: error.message });
-            }
-        }
-
-        // Auto-generate client ID
-        document.getElementById('clientId').value = 'client-' + Math.random().toString(36).substr(2, 9);
-    </script>
+    // Auto-generate client ID
+    // Auto-generate client ID
+    // Auto-generate client ID using crypto API
+    const arr = window.crypto.getRandomValues(new Uint32Array(1))
+    document.getElementById('clientId').value = 'client-' + arr[0].toString(36);
+</script>
 </body>
 </html>

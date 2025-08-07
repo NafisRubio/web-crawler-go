@@ -50,7 +50,7 @@ func (m *MockProductService) CrawlAndSaveProductsFromURL(ctx context.Context, do
 	time.Sleep(1 * time.Second)
 
 	// Send products fetched notification
-	mockProductCount := 25
+	mockProductCount := 57
 	m.sseService.Broadcast(ctx, ports.SSEMessage{
 		ID:    fmt.Sprintf("products-fetched-%d", time.Now().Unix()),
 		Event: "products_fetched",

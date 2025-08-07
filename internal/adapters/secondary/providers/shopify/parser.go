@@ -15,7 +15,7 @@ type Parser struct {
 
 func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error) {
 	p.logger.Info("processing products from shopify", "url", url)
-	//TODO implement me
+	//NOTE implement me
 	panic("implement me")
 }
 
