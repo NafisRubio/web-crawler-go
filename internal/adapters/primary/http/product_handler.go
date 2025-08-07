@@ -74,28 +74,3 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	RespondSuccess(w, h.logger, http.StatusOK, "Products retrieved successfully", products, pagination)
 }
-
-func (h *ProductHandler) CrawlDomain(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("received request", "method", r.Method, "domainName", r.URL.String())
-
-	// 1. Get URL parameter
-	domainName := r.URL.Query().Get("domain_name")
-	if domainName == "" {
-		h.logger.Error("missing Domain parameter")
-		RespondError(w, h.logger, http.StatusBadRequest, "URL parameter is required", nil)
-		return
-	}
-
-	// 2. Get products from the service
-	domainUrl := "https://" + domainName
-	productsCount, err := h.service.CrawlAndSaveProductsFromURL(r.Context(), domainUrl)
-	if err != nil {
-		h.logger.Error("failed to get productsCount", "error", err)
-		RespondError(w, h.logger, http.StatusInternalServerError, "Internal server error", err.Error())
-		return
-	}
-
-	h.logger.Info("successfully crawled domainName")
-
-	RespondSuccess(w, h.logger, http.StatusOK, "Domain crawled successfully", map[string]int{"productsCount": productsCount}, nil)
-}

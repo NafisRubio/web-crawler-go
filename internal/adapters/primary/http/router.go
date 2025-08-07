@@ -8,6 +8,7 @@ import (
 // Router handles HTTP routing configuration
 type Router struct {
 	productHandler *ProductHandler
+	crawlerHandler *CrawlerHandler
 	sseHandler     *SSEHandler
 	logger         ports.Logger
 }
@@ -21,9 +22,11 @@ func (rw *responseWriter) WriteHeader(code int) {
 func NewRouter(productService ports.ProductService, sseService ports.SSEService, logger ports.Logger) *Router {
 	productHandler := NewProductHandler(productService, logger)
 	sseHandler := NewSSEHandler(sseService, logger)
+	crawlerHandler := NewCrawlerHandler(productService, logger) // Create new handler
 
 	return &Router{
 		productHandler: productHandler,
+		crawlerHandler: crawlerHandler, // Add to router
 		sseHandler:     sseHandler,
 		logger:         logger,
 	}
@@ -34,7 +37,7 @@ func (r *Router) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Crawler
-	mux.HandleFunc("GET /api/v1/crawl", r.productHandler.CrawlDomain)
+	mux.HandleFunc("GET /api/v1/crawl", r.crawlerHandler.CrawlDomain)
 
 	// Product endpoints
 	mux.HandleFunc("GET /api/v1/products", r.productHandler.GetProduct)
