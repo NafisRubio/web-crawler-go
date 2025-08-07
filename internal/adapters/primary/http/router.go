@@ -31,10 +31,10 @@ func (r *Router) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Crawler
-	mux.HandleFunc("GET /crawl", r.productHandler.CrawlDomain)
+	mux.HandleFunc("GET /api/v1/crawl", r.productHandler.CrawlDomain)
 
 	// Product endpoints
-	mux.HandleFunc("GET /products", r.productHandler.GetProduct)
+	mux.HandleFunc("GET /api/v1/products", r.productHandler.GetProduct)
 
 	// Apply middleware pipeline
 	return r.pipeline(mux, r.loggingMiddleware, r.corsMiddleware)
