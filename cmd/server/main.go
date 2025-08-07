@@ -76,11 +76,12 @@ func main() {
 	providerRegistry["shopline.tw"] = shoplineProvider
 	// When you add Wix: providerRegistry["wix.com"] = wixProvider
 
-	// 3. Initialize the Core Service (injecting dependencies)
-	productService := services.NewProductService(htmlFetcher, providerRegistry, mongoDBRepo, logger)
+	// 3. Initialize the Core Services (injecting dependencies)
+	sseService := services.NewSSEService(logger)
+	productService := services.NewProductService(htmlFetcher, providerRegistry, mongoDBRepo, sseService, logger)
 
-	// 4. Initialize Primary/Driving Adapters (injecting service)
-	router := httpadapter.NewRouter(productService, logger)
+	// 4. Initialize Primary/Driving Adapters (injecting services)
+	router := httpadapter.NewRouter(productService, sseService, logger)
 
 	// 5. Setup Router and Start Server
 	handler := router.SetupRoutes()

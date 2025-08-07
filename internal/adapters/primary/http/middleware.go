@@ -1,15 +1,24 @@
 package http
 
 import (
-	"github.com/rs/cors"
 	"net/http"
 	"time"
+
+	"github.com/rs/cors"
 )
 
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
+}
+
+// Flush makes the wrapper implement http.Flusher
+func (rw *responseWriter) Flush() {
+	// Check if the underlying ResponseWriter supports flushing
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }
 
 // loggingMiddleware wraps an HTTP handler with request logging using slog
