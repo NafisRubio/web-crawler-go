@@ -1,30 +1,37 @@
 # Web Crawler Go
 
-A modern web crawler application built with Go 1.24 that fetches and parses product information from various websites.
+A modern web crawler built with Go 1.24 that discovers and parses product information from supported e-commerce platforms, stores results in MongoDB, caches fetches in Redis, and streams real-time crawl updates to clients via Server-Sent Events (SSE).
 
 ## Features
 
-- **Extensible Provider System:** Easily add new providers to support different e-commerce platforms like Shopify and Shopline.
-- **Product Information Parsing:** Extracts detailed product information including name, price, images, and variants.
-- **Caching Layer:** Utilizes Redis to cache fetched data, reducing redundant requests and improving performance.
-- **Database Integration:** Stores parsed product data in MongoDB for persistence and querying.
-- **Hexagonal Architecture:** A clean and modular design that separates core logic from external concerns, making the application easier to maintain and test.
-- **RESTful API:** Provides a simple and intuitive API for interacting with the web crawler service.
+- Extensible provider system (Shopify, Shopline; easy to add more)
+- Product parsing with variants, images, and pricing
+- Redis caching to reduce duplicate HTTP fetches
+- MongoDB persistence and paginated querying
+- Hexagonal architecture (ports/adapters) for clear separation of concerns
+- HTTP API and SSE endpoints for real-time updates
 
-## Project Structure
+## Current Project Structure
 
 ```
+├── LICENSE
+├── README.md
 ├── cmd/
 │   └── server/
 │       └── main.go
+├── go.mod
+├── go.sum
 ├── internal/
 │   ├── adapters/
 │   │   ├── primary/
 │   │   │   └── http/
-│   │   │       ├── handler.go
+│   │   │       ├── crawler_handler.go
 │   │   │       ├── middleware.go
+│   │   │       ├── models.go
+│   │   │       ├── product_handler.go
 │   │   │       ├── response.go
-│   │   │       └── router.go
+│   │   │       ├── router.go
+│   │   │       └── sse_handler.go
 │   │   └── secondary/
 │   │       ├── cache/
 │   │       │   └── redis.go
@@ -46,114 +53,93 @@ A modern web crawler application built with Go 1.24 that fetches and parses prod
 │       │   ├── logger.go
 │       │   └── ports.go
 │       └── services/
+│           ├── loggerservice/
+│           │   └── logger.go
 │           ├── productservice.go
-│           └── loggerservice/
-│               └── logger.go
+│           └── sseservice.go
+├── test_sse.html
+└── test_sse_integration.go
 ```
 
 ## Requirements
 
 - Go 1.24 or higher
-- Docker (for running MongoDB and Redis)
-- GoLand (or any other Go-compatible IDE)
+- Running MongoDB and Redis instances (local or remote)
 
 ## Dependencies
 
-- `github.com/joho/godotenv` - for managing environment variables
-- `github.com/redis/go-redis/v9` - Redis client for Go
-- `go.mongodb.org/mongo-driver/v2` - MongoDB driver for Go
-- `golang.org/x/net` - for network-related functionalities
+- github.com/joho/godotenv — load env vars
+- github.com/redis/go-redis/v9 — Redis client
+- go.mongodb.org/mongo-driver/v2 — MongoDB driver
+- golang.org/x/net — network utilities
 
 ## Getting Started
 
-### Installation
+### 1) Install dependencies
 
-1.  **Clone the repository:**
+```bash
+go mod download
+```
 
-    ```bash
-    git clone https://github.com/yourusername/web-crawler-go.git
-    cd web-crawler-go
-    ```
+### 2) Configure environment
 
-2.  **Install dependencies:**
+The server loads environment from .env.development by default (see cmd/server/main.go). Create that file in the project root and set the following:
 
-    ```bash
-    go mod download
-    ```
+```
+# Database
+MONGODB_URI=mongodb://localhost:27017
 
-3.  **Set up environment variables:**
+# Redis
+REDIS_HOST=localhost:6379
+REDIS_PASSWORD=
 
-    Create a `.env` file in the root of the project and add the following variables:
+# HTTP server
+PORT=8080
+```
 
-    ```
-    # Database Configuration
-    MONGODB_URI=mongodb+srv://<user>:<password>@<cluster-uri>/<database>
+Adjust values if you use cloud providers or different ports.
 
-    # Redis Configuration
-    REDIS_HOST=localhost:6379
-    REDIS_PASSWORD=
+### 3) Run the server
 
-    # Server Configuration
-    PORT=8080
+```bash
+go run cmd/server/main.go
+```
 
-    # Other configurations
-    LOG_LEVEL=info
-    ```
+## API
 
-    Replace the placeholder values with your actual MongoDB connection details.
+Base path: /api/v1
 
-### Running the Application
+- Crawl a domain
+  - Method: GET
+  - Path: /api/v1/crawl?domain_name=<domain>
+  - Description: Crawls the given domain (e.g., example.com), parses products using the appropriate provider, stores them, and returns a count of saved products.
+  - Response: { "status": "success", "message": "Domain crawled successfully", "data": { "productsCount": <int> } }
 
-1.  **Start the database and cache:**
+- List products by domain (paginated)
+  - Method: GET
+  - Path: /api/v1/products?domain_name=<domain>&page=<n>&page_size=<n>
+  - Description: Returns products already stored for the given domain with pagination metadata.
+  - Response: { "status": "success", "data": [ ...products ], "pagination": { page, page_size, total_items, total_pages, next_page, prev_page } }
 
-    You can use Docker to easily run MongoDB and Redis:
+- SSE stream
+  - Method: GET
+  - Path: /api/v1/sse?client_id=<optional>
+  - Description: Establishes an SSE connection for real-time server messages (e.g., crawl progress heartbeats).
 
-    ```bash
-    docker-compose up -d
-    ```
+- SSE status
+  - Method: GET
+  - Path: /api/v1/sse/status
+  - Description: Returns current SSE service status, including number of connected clients.
 
-2.  **Run the application:**
+## Testing SSE locally
 
-    ```bash
-    go run cmd/server/main.go
-    ```
+- test_sse.html: simple HTML page to connect to the SSE endpoint. Open it in a browser while the server is running.
+- test_sse_integration.go: integration helper for validating SSE behavior.
 
-## Usage
+## Adding new providers
 
-The web crawler service exposes the following endpoint to fetch product information:
-
-### Fetch Product Information
-
-- **Endpoint:** `POST /api/v1/product`
-- **Description:** Fetches and parses product information from the given URL.
-- **Body:**
-
-  ```json
-  {
-    "url": "https://example.com/product/123"
-  }
-  ```
-
-- **Response:**
-
-  Returns a JSON object with the parsed product information.
-
-## Adding New Providers
-
-To add support for a new website, you need to implement the `Parser` interface from the `internal/core/ports` directory.
-
-1.  **Create a new provider directory:**
-
-    Create a new directory under `internal/adapters/secondary/providers` for the new provider (e.g., `internal/adapters/secondary/providers/newprovider`).
-
-2.  **Implement the `Parser` interface:**
-
-    Create a new Go file in the provider directory and implement the `Parse` method. This method will contain the logic for parsing the product information from the website's HTML.
-
-3.  **Register the new provider:**
-
-    Register the new provider in the `ProductService` so that it can be used by the application.
+Implement the ProductProvider in internal/core/ports and add your provider under internal/adapters/secondary/providers/<provider>. Then register it in cmd/server/main.go via providerRegistry["host"] = yourProvider.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the LICENSE file for details.
