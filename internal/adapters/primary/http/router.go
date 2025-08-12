@@ -22,7 +22,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 func NewRouter(productService ports.ProductService, sseService ports.SSEService, logger ports.Logger) *Router {
 	productHandler := NewProductHandler(productService, logger)
 	sseHandler := NewSSEHandler(sseService, logger)
-	crawlerHandler := NewCrawlerHandler(productService, logger) // Create new handler
+	crawlerHandler := NewCrawlerHandler(productService, logger) // Create a new handler
 
 	return &Router{
 		productHandler: productHandler,
@@ -46,6 +46,6 @@ func (r *Router) SetupRoutes() http.Handler {
 	mux.HandleFunc("GET /api/v1/sse", r.sseHandler.HandleSSE)
 	mux.HandleFunc("GET /api/v1/sse/status", r.sseHandler.GetSSEStatus)
 
-	// Apply middleware pipeline
+	// Apply a middleware pipeline
 	return r.pipeline(mux, r.loggingMiddleware, r.corsMiddleware)
 }
