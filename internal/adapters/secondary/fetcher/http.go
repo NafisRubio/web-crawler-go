@@ -3,7 +3,7 @@ package fetcher
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -16,18 +16,20 @@ import (
 const defaultCacheExpiration = 730 * time.Hour
 
 type HTTPFetcher struct {
-	cache ports.CacheService
+	cache  ports.CacheService
+	logger ports.Logger
 }
 
-func NewHTTPFetcher(cache ports.CacheService) *HTTPFetcher {
+func NewHTTPFetcher(cache ports.CacheService, logger ports.Logger) *HTTPFetcher {
 	return &HTTPFetcher{
-		cache: cache,
+		cache:  cache,
+		logger: logger,
 	}
 }
 
 // generateCacheKey creates a unique key for caching based on the URL
 func generateCacheKey(url string) string {
-	hash := md5.Sum([]byte(url))
+	hash := sha256.Sum256([]byte(url))
 	return "url:" + hex.EncodeToString(hash[:])
 }
 
@@ -39,14 +41,14 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, url string) (io.ReadCloser, err
 	if f.cache != nil {
 		cachedData, found, err := f.cache.Get(ctx, cacheKey)
 		if err != nil {
-			// Log error but continue with HTTP request
-			// log.Printf("Cache get error: %v", err)
+			f.logger.Error("cache get error", "error", err)
 		} else if found {
-			// Return cached data if found
+			f.logger.Info("cache hit", "key", cacheKey)
 			return cachedData, nil
 		}
 	}
 
+	f.logger.Info("cache miss, making HTTP request", "url", url)
 	// If not in cache or cache error, make HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -80,10 +82,10 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, url string) (io.ReadCloser, err
 			cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
+			f.logger.Info("setting cache", "key", cacheKey)
 			err := f.cache.Set(cacheCtx, cacheKey, cacheReader, defaultCacheExpiration)
 			if err != nil {
-				// Log error but continue
-				// log.Printf("Cache set error: %v", err)
+				f.logger.Error("cache set error", "error", err)
 			}
 		}()
 

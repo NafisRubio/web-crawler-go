@@ -10,20 +10,23 @@ import (
 
 type Parser struct {
 	fetcher ports.HTMLFetcher
+	logger  ports.Logger
 }
 
-func (p *Parser) ProcessProducts(ctx context.Context, url string) (*domain.Product, error) {
-	//TODO implement me
+func (p *Parser) ProcessProducts(ctx context.Context, url string) ([]*domain.Product, error) {
+	p.logger.Info("processing products from shopify", "url", url)
+	//NOTE implement me
 	panic("implement me")
 }
 
-func NewParser(fetcher ports.HTMLFetcher) *Parser {
+func NewParser(fetcher ports.HTMLFetcher, logger ports.Logger) *Parser {
 	return &Parser{
 		fetcher: fetcher,
+		logger:  logger,
 	}
 }
 
-// Parse implements the ProductProvider interface for Shopify.
+// Parse implements the ProductProvider interface.
 func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, error) {
 	// Here, you would use a library like goquery to parse the HTML.
 	// doc, err := goquery.NewDocumentFromReader(html)
@@ -31,8 +34,6 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 	// For this example, we'll return mock data.
 	return &domain.Product{
 		Name:        "Shopify Product",
-		Price:       99.99,
 		Description: "Parsed from a Shopify page.",
-		ImageURL:    "http://example.com/image.png",
 	}, nil
 }
