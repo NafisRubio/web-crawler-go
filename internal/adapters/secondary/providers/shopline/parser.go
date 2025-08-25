@@ -172,7 +172,6 @@ func (p *Parser) Parse(ctx context.Context, html io.Reader) (*domain.Product, er
 }
 
 func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchantID *string, productID *string) (*Product, error) {
-	//       const productModelUrl = `https://${this.domainName}/api/merchants/${productApplicationLdJson.owner_id}/products/${productApplicationLdJson._id}`
 	productDataURL := fmt.Sprintf("https://%s/api/merchants/%s/products/%s", hostname, *merchantID, *productID)
 	fetchResponse, err := p.fetcher.Fetch(ctx, productDataURL)
 	if err != nil {
@@ -200,6 +199,11 @@ func (p *Parser) fetchProductData(ctx context.Context, hostname string, merchant
 		Price:           apiResponse.Data.Price.Cents,
 		PriceDiscounted: apiResponse.Data.PriceSale.Cents,
 		Description:     apiResponse.Data.DescriptionTranslations["zh-hant"],
+		Status:          "IN STOCK",
+	}
+
+	if apiResponse.Data.Quantity < 1 {
+		productShopLine.Status = "SOLD OUT"
 	}
 
 	for _, media := range apiResponse.Data.Media {
